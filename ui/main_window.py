@@ -1,10 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-
+from tkinter import filedialog, messagebox
+from models.project import Project
+from pathlib import Path
 
 class MainWindow:
-    """Main application window."""
-
     def __init__(self, root: tk.Tk):
         self.root = root
 
@@ -12,16 +12,21 @@ class MainWindow:
         self.root.geometry("1100x700")
         self.root.minsize(700, 450)
 
+        self.project = None
+
         self._create_menu()
         self._create_layout()
 
     def _create_menu(self):
-        """Create the application menu."""
 
         menu_bar = tk.Menu(self.root)
 
         file_menu = tk.Menu(menu_bar, tearoff=0)
-        file_menu.add_command(label="Open Project...")
+        file_menu.add_command(
+            label="Open Project Folder...", command=self._open_project_folder
+        )
+
+        file_menu.add_command(label="Open Main File...", command=self._open_main_file)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.destroy)
 
@@ -38,52 +43,32 @@ class MainWindow:
         self.root.config(menu=menu_bar)
 
     def _create_layout(self):
-        """Create the main window layout."""
-
-        # Project information panel
         self.project_frame = ttk.Frame(self.root, padding=10)
         self.project_frame.pack(fill=tk.X)
 
         self.project_label = ttk.Label(
-            self.project_frame,
-            text="Project: No project opened",
-            font=("Arial", 11)
+            self.project_frame, text="Project: No project opened", font=("Arial", 11)
         )
         self.project_label.pack(side=tk.LEFT)
 
-        # Main visualization area
         self.viewer_frame = ttk.LabelFrame(
-            self.root,
-            text="Include Hierarchy",
-            padding=5
+            self.root, text="Include Hierarchy", padding=5
         )
-        self.viewer_frame.pack(
-            fill=tk.BOTH,
-            expand=True,
-            padx=10,
-            pady=(0, 10)
-        )
+        self.viewer_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
-        self.canvas = tk.Canvas(
-            self.viewer_frame,
-            background="white"
-        )
+        self.canvas = tk.Canvas(self.viewer_frame, background="white")
 
         self.vertical_scrollbar = ttk.Scrollbar(
-            self.viewer_frame,
-            orient=tk.VERTICAL,
-            command=self.canvas.yview
+            self.viewer_frame, orient=tk.VERTICAL, command=self.canvas.yview
         )
 
         self.horizontal_scrollbar = ttk.Scrollbar(
-            self.viewer_frame,
-            orient=tk.HORIZONTAL,
-            command=self.canvas.xview
+            self.viewer_frame, orient=tk.HORIZONTAL, command=self.canvas.xview
         )
 
         self.canvas.configure(
             yscrollcommand=self.vertical_scrollbar.set,
-            xscrollcommand=self.horizontal_scrollbar.set
+            xscrollcommand=self.horizontal_scrollbar.set,
         )
 
         self.canvas.grid(row=0, column=0, sticky="nsew")
@@ -93,12 +78,60 @@ class MainWindow:
         self.viewer_frame.rowconfigure(0, weight=1)
         self.viewer_frame.columnconfigure(0, weight=1)
 
-        # Status bar
         self.status_label = ttk.Label(
-            self.root,
-            text="Ready",
-            relief=tk.SUNKEN,
-            anchor=tk.W,
-            padding=5
+            self.root, text="Ready", relief=tk.SUNKEN, anchor=tk.W, padding=5
         )
         self.status_label.pack(fill=tk.X)
+
+
+    def _open_project_folder(self):
+        folder_path = filedialog.askdirectory(title="Select C++ Project Folder")
+
+        if not folder_path:
+            return
+
+        self._load_project(folder_path)
+
+
+    def _open_main_file(self):
+        file_path = filedialog.askopenfilename(
+            title="Select Main C++ File",
+            filetypes=[
+                ("C++ source files", "*.cpp"),
+                ("All supported files", "*.cpp *.h *.rc"),
+                ("All files", "*.*"),
+            ],
+        )
+
+        if not file_path:
+            return
+
+        self._load_project(str(Path(file_path).parent), main_file=file_path)
+
+
+    def _load_project(self, folder_path: str, main_file: str | None = None):
+        try:
+            project = Project(folder_path, main_file)
+
+            if not project.root_path.is_dir():
+                messagebox.showerror("Error", "Selected project folder does not exist.")
+                return
+
+            source_files = project.get_source_files()
+
+            if not source_files:
+                messagebox.showwarning(
+                    "Empty Project", "No supported C++ files were found."
+                )
+                return
+
+            self.project = project
+
+            self.project_label.config(
+                text=f"Project: {project.name} | Files: {len(source_files)}"
+            )
+
+            self.status_label.config(text=f"Opened: {project.root_path}")
+
+        except OSError as error:
+            messagebox.showerror("Project Error", f"Could not open project:\n{error}")
