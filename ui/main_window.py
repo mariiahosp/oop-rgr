@@ -35,10 +35,10 @@ class MainWindow:
         file_menu.add_command(label="Exit", command=self.root.destroy)
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
-        view_menu.add_command(label="Reset View")
+        view_menu.add_command(label="Reset View", command=self._reset_view)
 
         help_menu = tk.Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label="About")
+        help_menu.add_command(label="About", command=self._show_about)
 
         menu_bar.add_cascade(label="File", menu=file_menu)
         menu_bar.add_cascade(label="View", menu=view_menu)
@@ -88,6 +88,18 @@ class MainWindow:
         self.status_label.pack(fill=tk.X)
 
         self.viewer = TreeViewer(self.canvas)
+
+    def _reset_view(self) -> None:
+        self.viewer.reset_view()
+
+    def _show_about(self) -> None:
+        messagebox.showinfo(
+            "About",
+            "C++ Include Analyzer\n\n"
+            "Розрахунково-графічна робота\n"
+            "Об’єктно-орієнтоване програмування\n\n"
+            "Господінова Марія",
+        )
 
     def _open_project_folder(self):
         folder_path = filedialog.askdirectory(title="Select C++ Project Folder")
