@@ -8,10 +8,12 @@ class TreeViewer:
     NODE_HEIGHT = 36
     H_GAP = 24
     V_GAP = 56
-    MARGIN = 24
+    MARGIN = 40
 
     def __init__(self, canvas: tk.Canvas):
         self.canvas = canvas
+        self.canvas.bind("<MouseWheel>", self._on_vertical_scroll)
+        self.canvas.bind("<Shift-MouseWheel>", self._on_horizontal_scroll)
 
     def show(self, graph: DependencyGraph) -> None:
         self.clear()
@@ -25,8 +27,7 @@ class TreeViewer:
         for root in graph.roots:
             self._draw(root, positions)
 
-        bounds = self.canvas.bbox("all")
-        self.canvas.configure(scrollregion=bounds or (0, 0, 0, 0))
+        self._update_scrollregion()
         self.reset_view()
 
     def clear(self) -> None:
@@ -35,6 +36,31 @@ class TreeViewer:
     def reset_view(self) -> None:
         self.canvas.xview_moveto(0)
         self.canvas.yview_moveto(0)
+
+    def _update_scrollregion(self) -> None:
+        bounds = self.canvas.bbox("all")
+        if bounds is None:
+            self.canvas.configure(scrollregion=(0, 0, 0, 0))
+            return
+
+        _, _, x2, y2 = bounds
+        margin = self.MARGIN
+        self.canvas.configure(scrollregion=(0, 0, x2 + margin, y2 + margin))
+
+    def _scroll_units(self, event: tk.Event) -> int:
+        if event.delta > 0:
+            return -1
+        if event.delta < 0:
+            return 1
+        return 0
+
+    def _on_vertical_scroll(self, event: tk.Event) -> str:
+        self.canvas.yview_scroll(self._scroll_units(event), "units")
+        return "break"
+
+    def _on_horizontal_scroll(self, event: tk.Event) -> str:
+        self.canvas.xview_scroll(self._scroll_units(event), "units")
+        return "break"
 
     def _subtree_width(self, node: GraphNode) -> float:
         if not node.children:

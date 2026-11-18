@@ -3,6 +3,10 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 from models.project import Project
 from pathlib import Path
+from analysis.include_analyzer import IncludeAnalyzer
+from analysis.dependency_graph import DependencyGraph
+from viewer.tree_viewer import TreeViewer
+
 
 class MainWindow:
     def __init__(self, root: tk.Tk):
@@ -54,7 +58,7 @@ class MainWindow:
         self.viewer_frame = ttk.LabelFrame(
             self.root, text="Include Hierarchy", padding=5
         )
-        self.viewer_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        self.viewer_frame.pack(fill=tk.BOTH, expand=True, padx=18, pady=(8, 16))
 
         self.canvas = tk.Canvas(self.viewer_frame, background="white")
 
@@ -83,6 +87,7 @@ class MainWindow:
         )
         self.status_label.pack(fill=tk.X)
 
+        self.viewer = TreeViewer(self.canvas)
 
     def _open_project_folder(self):
         folder_path = filedialog.askdirectory(title="Select C++ Project Folder")
@@ -91,7 +96,6 @@ class MainWindow:
             return
 
         self._load_project(folder_path)
-
 
     def _open_main_file(self):
         file_path = filedialog.askopenfilename(
@@ -107,7 +111,6 @@ class MainWindow:
             return
 
         self._load_project(str(Path(file_path).parent), main_file=file_path)
-
 
     def _load_project(self, folder_path: str, main_file: str | None = None):
         try:
@@ -127,11 +130,18 @@ class MainWindow:
 
             self.project = project
 
+            sources = IncludeAnalyzer().analyze(project)
+            graph = DependencyGraph(sources, project.main_file)
+            include_count = sum(len(source.includes) for source in sources)
+            self.viewer.show(graph)
+
             self.project_label.config(
                 text=f"Project: {project.name} | Files: {len(source_files)}"
             )
 
-            self.status_label.config(text=f"Opened: {project.root_path}")
+            self.status_label.config(
+                text=f"Opened: {project.root_path} | Includes: {include_count}"
+            )
 
         except OSError as error:
             messagebox.showerror("Project Error", f"Could not open project:\n{error}")
