@@ -15,6 +15,7 @@ class IncludeAnalyzer:
         for path in project.get_source_files():
             source = SourceFile(path)
             text = self._read_text(path)
+            source.preview_lines = self._preview_lines(text)
             for include in self._extract_includes(text, files_by_name):
                 source.add_include(include)
             sources.append(source)
@@ -28,6 +29,17 @@ class IncludeAnalyzer:
             except UnicodeDecodeError:
                 continue
         return path.read_text(encoding="utf-8", errors="replace")
+
+    def _preview_lines(self, text: str) -> list[str]:
+        lines: list[str] = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            lines.append(stripped)
+            if len(lines) == 6:
+                break
+        return lines
 
     def _extract_includes(
         self,

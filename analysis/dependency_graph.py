@@ -4,10 +4,17 @@ from models.source_file import IncludeRef, SourceFile
 
 
 class GraphNode:
-    def __init__(self, name: str, is_system: bool, path: Path | None = None):
+    def __init__(
+        self,
+        name: str,
+        is_system: bool,
+        path: Path | None = None,
+        preview: list[str] | None = None,
+    ):
         self.name = name
         self.is_system = is_system
         self.path = path
+        self.preview = preview or []
         self.children: list[GraphNode] = []
 
     @property
@@ -38,7 +45,12 @@ class DependencyGraph:
 
     def _expand(self, source: SourceFile, trail: set[Path]) -> GraphNode:
         path = source.path.resolve()
-        node = GraphNode(source.name, is_system=False, path=source.path)
+        node = GraphNode(
+            source.name,
+            is_system=False,
+            path=source.path,
+            preview=source.preview_lines,
+        )
         if path in trail:
             return node
 
@@ -54,4 +66,8 @@ class DependencyGraph:
             if source is not None:
                 return self._expand(source, trail)
 
-        return GraphNode(include.name, is_system=include.is_system)
+        if include.is_system:
+            preview = ["системний заголовок"]
+        else:
+            preview = ["файл не знайдено"]
+        return GraphNode(include.name, is_system=include.is_system, preview=preview)

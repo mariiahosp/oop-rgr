@@ -18,6 +18,7 @@ class SourceFile:
     def __init__(self, path: Path):
         self.path = path
         self.includes: list[IncludeRef] = []
+        self.preview_lines: list[str] = []
 
     @property
     def name(self) -> str:

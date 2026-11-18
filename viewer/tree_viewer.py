@@ -4,10 +4,12 @@ from analysis.dependency_graph import DependencyGraph, GraphNode
 
 
 class TreeViewer:
-    NODE_WIDTH = 150
-    NODE_HEIGHT = 36
-    H_GAP = 24
-    V_GAP = 56
+    NODE_WIDTH = 230
+    NAME_HEIGHT = 18
+    LINE_HEIGHT = 15
+    CARD_PADDING = 8
+    H_GAP = 28
+    V_GAP = 64
     MARGIN = 40
 
     def __init__(self, canvas: tk.Canvas):
@@ -70,6 +72,13 @@ class TreeViewer:
         total += self.H_GAP * (len(node.children) - 1)
         return max(float(self.NODE_WIDTH), total)
 
+    def _card_height(self, node: GraphNode) -> float:
+        lines = max(1, len(node.preview))
+        return self.CARD_PADDING * 2 + lines * self.LINE_HEIGHT
+
+    def _node_height(self, node: GraphNode) -> float:
+        return self.NAME_HEIGHT + self._card_height(node)
+
     def _layout(
         self,
         node: GraphNode,
@@ -81,7 +90,7 @@ class TreeViewer:
         positions[id(node)] = (left + (width - self.NODE_WIDTH) / 2, top)
 
         child_left = left
-        child_top = top + self.NODE_HEIGHT + self.V_GAP
+        child_top = top + self._node_height(node) + self.V_GAP
         for child in node.children:
             self._layout(child, child_left, child_top, positions)
             child_left += self._subtree_width(child) + self.H_GAP
@@ -94,39 +103,71 @@ class TreeViewer:
         x, y = positions[id(node)]
         self._draw_node(node, x, y)
 
+        start_y = y + self._node_height(node)
         for child in node.children:
             child_x, child_y = positions[id(child)]
+            end_y = child_y + self.NAME_HEIGHT
             self.canvas.create_line(
                 x + self.NODE_WIDTH / 2,
-                y + self.NODE_HEIGHT,
+                start_y,
                 child_x + self.NODE_WIDTH / 2,
-                child_y,
+                end_y,
                 fill="#546e7a",
                 arrow=tk.LAST,
+            )
+            self.canvas.create_text(
+                (x + child_x) / 2 + self.NODE_WIDTH / 2,
+                (start_y + end_y) / 2,
+                text="#include",
+                fill="#1565c0",
+                font=("Arial", 9),
             )
             self._draw(child, positions)
 
     def _draw_node(self, node: GraphNode, x: float, y: float) -> None:
         if node.is_system:
-            fill, outline = "#e8f5e9", "#2e7d32"
+            fill, outline = "#c8e6c9", "#2e7d32"
         elif node.missing:
-            fill, outline = "#ffebee", "#c62828"
+            fill, outline = "#ffcdd2", "#c62828"
+        elif node.name.endswith(".h"):
+            fill, outline = "#b3e5fc", "#0277bd"
         else:
-            fill, outline = "#e3f2fd", "#1565c0"
+            fill, outline = "#ffffff", "#212121"
 
+        card_y = y + self.NAME_HEIGHT
+        card_height = self._card_height(node)
+        self.canvas.create_text(
+            x + self.NODE_WIDTH / 2,
+            y + self.NAME_HEIGHT / 2,
+            text=node.name,
+            fill="#1a1a1a",
+            font=("Arial", 11, "bold"),
+        )
         self.canvas.create_rectangle(
             x,
-            y,
+            card_y,
             x + self.NODE_WIDTH,
-            y + self.NODE_HEIGHT,
+            card_y + card_height,
             fill=fill,
             outline=outline,
             width=2,
         )
-        self.canvas.create_text(
-            x + self.NODE_WIDTH / 2,
-            y + self.NODE_HEIGHT / 2,
-            text=node.name,
-            fill="#1a1a1a",
-            font=("Arial", 10),
-        )
+
+        text_y = card_y + self.CARD_PADDING
+
+        for line in node.preview:
+            if line.startswith("#include") and "<" in line:
+                color = "#b71c1c"
+            elif line.startswith("#include"):
+                color = "#1565c0"
+            else:
+                color = "#1a1a1a"
+            self.canvas.create_text(
+                x + 8,
+                text_y,
+                text=line,
+                anchor="nw",
+                fill=color,
+                font=("Courier New", 9),
+            )
+            text_y += self.LINE_HEIGHT
