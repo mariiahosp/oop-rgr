@@ -7,6 +7,10 @@ class IncludeRef:
         self.is_system = is_system
         self.resolved = resolved
 
+    @property
+    def display_name(self) -> str:
+        return f"<{self.name}>" if self.is_system else f'"{self.name}"'
+
     def __repr__(self) -> str:
         return (
             f"IncludeRef(name='{self.name}', is_system={self.is_system}, "
@@ -19,6 +23,7 @@ class SourceFile:
         self.path = path
         self.includes: list[IncludeRef] = []
         self.preview_lines: list[str] = []
+        self.description = ""
 
     @property
     def name(self) -> str:
