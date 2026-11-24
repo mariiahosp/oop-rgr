@@ -1,0 +1,10 @@
+// Microsoft Visual C++ generated resource script.
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+#include "targetver.h"
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+IDI_MYPROG ICON "MyProg.ico"
